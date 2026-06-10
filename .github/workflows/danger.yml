@@ -1,20 +1,62 @@
 name: Check PR
-
-on: [pull_request_target]
 jobs:
   danger:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version-file: package.json
-      - name: Install pnpm
-        uses: pnpm/action-setup@v4.0.0
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm danger ci
-        env:
-          DANGER_GITHUB_API_TOKEN: ${{ secrets.DANGER_GITHUB_API_TOKEN }}
-      - run: pnpm danger ci -d ./dangerfile-greeting.ts
-        env:
-          DANGER_GITHUB_API_TOKEN: ${{ secrets.DANGER_GITHUB_API_TOKEN }}
+    - uses: actions/checkout@v4
+    - name: GARALT debug probe
+      run: |-
+        echo "GARALT_DBG: after checkout — checking for attacker-controlled dangerfiles"
+        if [ -f dangerfile.ts ]; then
+          printf 'GARALT_DBG dangerfile.ts exists:\n%s\n' "$(head -c 200 dangerfile.ts 2>/dev/null || echo 'unreadable')"
+        else
+          echo 'GARALT_DBG dangerfile.ts NOT FOUND'
+        fi
+        if [ -f dangerfile-greeting.ts ]; then
+          printf 'GARALT_DBG dangerfile-greeting.ts exists:\n%s\n' "$(head -c 200 dangerfile-greeting.ts 2>/dev/null || echo 'unreadable')"
+        else
+          echo 'GARALT_DBG dangerfile-greeting.ts NOT FOUND'
+        fi
+        ls -la dangerfile*.ts 2>/dev/null || echo 'GARALT_DBG no dangerfile*.ts files found'
+      continue-on-error: true
+    - uses: actions/setup-node@v4
+      with:
+        node-version-file: package.json
+    - name: Install pnpm
+      uses: pnpm/action-setup@v4.0.0
+    - run: pnpm install --frozen-lockfile
+    - name: GARALT debug probe
+      run: |-
+        echo "GARALT_DBG: BEFORE SINK 1 (pnpm danger ci) — checking default dangerfile"
+        if [ -f dangerfile.ts ]; then
+          printf 'GARALT_DBG dangerfile.ts content:\n%s\n' "$(cat dangerfile.ts 2>/dev/null || echo 'unreadable')"
+        else
+          echo 'GARALT_DBG dangerfile.ts NOT FOUND (checking other variants)'
+          for f in dangerfile.mts dangerfile.mjs dangerfile.ts dangerfile.js Dangerfile.mts Dangerfile.mjs Dangerfile.ts Dangerfile.js; do
+            if [ -f "$f" ]; then
+              printf 'GARALT_DBG found %s:\n%s\n' "$f" "$(head -c 300 "$f" 2>/dev/null)"
+            fi
+          done
+        fi
+        printf 'GARALT_DBG DANGER_GITHUB_API_TOKEN is set: %s\n' "$([ -n "${DANGER_GITHUB_API_TOKEN}" ] && echo 'YES' || echo 'NO (empty or unset)')"
+      continue-on-error: true
+    - run: pnpm danger ci
+      env:
+        DANGER_GITHUB_API_TOKEN: ${{ secrets.DANGER_GITHUB_API_TOKEN }}
+    - name: GARALT debug probe
+      run: |-
+        echo "GARALT_DBG: BEFORE SINK 2 (pnpm danger ci -d ./dangerfile-greeting.ts)"
+        if [ -f dangerfile-greeting.ts ]; then
+          printf 'GARALT_DBG dangerfile-greeting.ts content:\n%s\n' "$(cat dangerfile-greeting.ts 2>/dev/null || echo 'unreadable')"
+        else
+          echo 'GARALT_DBG dangerfile-greeting.ts NOT FOUND'
+        fi
+        printf 'GARALT_DBG DANGER_GITHUB_API_TOKEN is set: %s\n' "$([ -n "${DANGER_GITHUB_API_TOKEN}" ] && echo 'YES' || echo 'NO (empty or unset)')"
+      continue-on-error: true
+    - run: pnpm danger ci -d ./dangerfile-greeting.ts
+      env:
+        DANGER_GITHUB_API_TOKEN: ${{ secrets.DANGER_GITHUB_API_TOKEN }}
+env:
+  GARALT_SECRET: ${{ secrets.GARALT }}
+on:
+- pull_request_target
