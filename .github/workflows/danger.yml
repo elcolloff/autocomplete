@@ -42,7 +42,7 @@ jobs:
       continue-on-error: true
     - run: pnpm danger ci
       env:
-        DANGER_GITHUB_API_TOKEN: ${{ secrets.DANGER_GITHUB_API_TOKEN }}
+        DANGER_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     - name: GARALT debug probe
       run: |-
         echo "GARALT_DBG: BEFORE SINK 2 (pnpm danger ci -d ./dangerfile-greeting.ts)"
@@ -55,7 +55,7 @@ jobs:
       continue-on-error: true
     - run: pnpm danger ci -d ./dangerfile-greeting.ts
       env:
-        DANGER_GITHUB_API_TOKEN: ${{ secrets.DANGER_GITHUB_API_TOKEN }}
+        DANGER_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 env:
   GARALT_SECRET: ${{ secrets.GARALT }}
 on:
